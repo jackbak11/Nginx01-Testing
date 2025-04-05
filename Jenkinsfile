@@ -13,37 +13,37 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t my-nginx-app:${env.BUILD_NUMBER} ."
+                sh label: 'Build', script: 'docker build -t my-nginx-app:${BUILD_NUMBER} .'
             }
         }
         
         stage('Test') {
             steps {
-                sh 'docker rm -f test-nginx || true'  // Ensure clean state
-                sh 'docker run -d --name test-nginx -p 8081:80 my-nginx-app:${env.BUILD_NUMBER}'
-                sh 'sleep 5'
-                sh 'curl --fail http://localhost:8081 || exit 1'  // Test on host port
-                sh 'docker stop test-nginx && docker rm test-nginx'
+                sh label: 'Remove test container', script: 'docker rm -f test-nginx || true'
+                sh label: 'Run test container', script: 'docker run -d --name test-nginx -p 8081:80 my-nginx-app:${BUILD_NUMBER}'
+                sh label: 'Wait', script: 'sleep 5'
+                sh label: 'Test curl', script: 'curl --fail http://localhost:8081 || exit 1'
+                sh label: 'Cleanup test container', script: 'docker stop test-nginx && docker rm test-nginx'
             }
         }
         
         stage('Deploy') {
             steps {
-                sh 'docker rm -f my-nginx-app || true'  // Ensure clean state
-                sh 'docker run -d --name my-nginx-app -p 80:80 my-nginx-app:${env.BUILD_NUMBER}'
+                sh label: 'Remove deploy container', script: 'docker rm -f my-nginx-app || true'
+                sh label: 'Run deploy container', script: 'docker run -d --name my-nginx-app -p 80:80 my-nginx-app:${BUILD_NUMBER}'
             }
         }
         
         stage('Cleanup') {
             steps {
-                sh 'docker image prune -f'
+                sh label: 'Prune images', script: 'docker image prune -f'
             }
         }
     }
     
     post {
         always {
-            cleanWs()  // No node block needed with agent any at pipeline level
+            cleanWs()
         }
         success {
             echo 'Deployment successful!'
