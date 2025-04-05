@@ -1,9 +1,8 @@
 pipeline {
-    agent {
-        docker {
-            image 'docker:20.10' // Use a Docker image with Docker CLI
-            args '-v /var/run/docker.sock:/var/run/docker.sock' // Mount Docker socket
-        }
+    agent any
+    environment {
+        DOCKER_HOST = 'tcp://docker:2375'  // HTTP connection
+
     }
     
     stages {
