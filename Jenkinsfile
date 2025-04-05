@@ -43,9 +43,7 @@ pipeline {
     
     post {
         always {
-            node {
-                cleanWs()  // Wrapped in node to avoid context error
-            }
+            cleanWs()  // No node block needed with agent any at pipeline level
         }
         success {
             echo 'Deployment successful!'
