@@ -1,8 +1,7 @@
 pipeline {
     agent any
     environment {
-        DOCKER_HOST = 'tcp://docker:2375'  // HTTP connection
-
+        DOCKER_HOST = 'tcp://docker:2375'  // HTTP connection to Docker daemon
     }
     
     stages {
@@ -14,25 +13,24 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                script {
-                    dockerImage = docker.build("my-nginx-app:${env.BUILD_NUMBER}")
-                }
+                sh "docker build -t my-nginx-app:${env.BUILD_NUMBER} ."
             }
         }
         
         stage('Test') {
             steps {
-                sh 'docker run -d --name test-nginx --network jenkins -p 8081:80 my-nginx-app:${env.BUILD_NUMBER}'
+                sh 'docker rm -f test-nginx || true'  // Ensure clean state
+                sh 'docker run -d --name test-nginx -p 8081:80 my-nginx-app:${env.BUILD_NUMBER}'
                 sh 'sleep 5'
-                sh 'curl --fail http://test-nginx:80 || exit 1'
+                sh 'curl --fail http://localhost:8081 || exit 1'  // Test on host port
                 sh 'docker stop test-nginx && docker rm test-nginx'
             }
         }
         
         stage('Deploy') {
             steps {
-                sh 'docker stop my-nginx-app || true && docker rm my-nginx-app || true'
-                sh 'docker run -d --name my-nginx-app --network jenkins -p 80:80 my-nginx-app:${env.BUILD_NUMBER}'
+                sh 'docker rm -f my-nginx-app || true'  // Ensure clean state
+                sh 'docker run -d --name my-nginx-app -p 80:80 my-nginx-app:${env.BUILD_NUMBER}'
             }
         }
         
@@ -45,7 +43,9 @@ pipeline {
     
     post {
         always {
-            cleanWs()
+            node {
+                cleanWs()  // Wrapped in node to avoid context error
+            }
         }
         success {
             echo 'Deployment successful!'
