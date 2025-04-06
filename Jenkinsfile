@@ -22,7 +22,7 @@ pipeline {
                 sh label: 'Remove test container', script: 'docker rm -f test-nginx || true'
                 sh label: 'Run test container', script: 'docker run -d --network jenkins --network-alias nginx01 --name test-nginx -p 8081:80 my-nginx-app:${BUILD_NUMBER}'
                 sh label: 'Wait', script: 'sleep 5'
-                sh label: 'Test curl', script: 'curl --fail http://nginx01 || exit 1'
+                sh label: 'Test curl', script: 'curl --fail http://localhost:8081 || exit 1'
                 sh label: 'Cleanup test container', script: 'docker stop test-nginx && docker rm test-nginx'
             }
         }
